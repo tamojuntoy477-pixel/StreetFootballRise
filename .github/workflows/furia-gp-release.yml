@@ -1,9 +1,12 @@
-name: Build and Release Furia GP APK
+name: Build Furia GP APK Direct
 
 on:
   push:
     branches:
       - furia-gp-apk-build
+    paths-ignore:
+      - 'furia-gp-apk-chunk-*'
+      - 'furia-gp-apk-info.txt'
 
 permissions:
   contents: write
@@ -38,11 +41,17 @@ jobs:
         working-directory: furia-gp-android
         run: gradle :app:assembleDebug --stacktrace
 
-      - name: Prepare APK
-        run: cp furia-gp-android/app/build/outputs/apk/debug/app-debug.apk Furia-GP-v1.apk
-
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Split APK for retrieval
         run: |
-          gh release create furia-gp-v1-20260920 Furia-GP-v1.apk             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "Fúria GP v1 APK"             --notes "APK Android do protótipo Fúria GP: Racing Manager."
+          cp furia-gp-android/app/build/outputs/apk/debug/app-debug.apk Furia-GP-v1.apk
+          sha256sum Furia-GP-v1.apk > furia-gp-apk-info.txt
+          stat -c%s Furia-GP-v1.apk >> furia-gp-apk-info.txt
+          base64 -w 0 Furia-GP-v1.apk | split -b 500000 - furia-gp-apk-chunk-
+
+      - name: Commit APK chunks
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add furia-gp-apk-chunk-* furia-gp-apk-info.txt
+          git commit -m "Store compiled Furia GP APK chunks [skip ci]"
+          git push
