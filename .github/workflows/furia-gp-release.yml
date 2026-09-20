@@ -1,0 +1,48 @@
+name: Build and Release Furia GP APK
+
+on:
+  push:
+    branches:
+      - furia-gp-apk-build
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        working-directory: furia-gp-android
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Prepare APK
+        run: cp furia-gp-android/app/build/outputs/apk/debug/app-debug.apk Furia-GP-v1.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create furia-gp-v1-20260920 Furia-GP-v1.apk             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "Fúria GP v1 APK"             --notes "APK Android do protótipo Fúria GP: Racing Manager."
