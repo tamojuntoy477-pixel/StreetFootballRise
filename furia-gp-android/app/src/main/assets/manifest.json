@@ -1,0 +1,10 @@
+{
+  "name":"Fúria GP: Racing Manager",
+  "short_name":"Fúria GP",
+  "start_url":"./index.html",
+  "display":"standalone",
+  "background_color":"#0d0f12",
+  "theme_color":"#101114",
+  "orientation":"landscape",
+  "icons":[]
+}
