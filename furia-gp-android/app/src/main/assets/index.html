@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<meta name="theme-color" content="#101114" />
+<title>Fúria GP: Racing Manager</title>
+<link rel="manifest" href="manifest.json" />
+<style>
+:root{--bg:#0d0f12;--panel:#171a20;--panel2:#22262e;--txt:#f4f6f8;--muted:#9aa3ad;--accent:#ff3b30;--good:#35c759;--warn:#ffcc00;--blue:#0a84ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}#app{height:100%;display:flex;flex-direction:column}
+header{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#11141a;border-bottom:1px solid #252b34}.brand{font-weight:900;letter-spacing:.4px}.brand b{color:var(--accent)}.tiny{font-size:12px;color:var(--muted)}
+#hud{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px;background:#12151b;border-bottom:1px solid #252b34}.card{background:var(--panel);border:1px solid #262c35;border-radius:10px;padding:7px 8px;min-width:0}.card .v{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+#gameWrap{position:relative;flex:1;min-height:0;background:#0a0c10}canvas{width:100%;height:100%;display:block;background:linear-gradient(#1c6b2a,#165522)}#overlay{position:absolute;inset:0;pointer-events:none}.topToast{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#111a;border:1px solid #ffffff22;padding:7px 12px;border-radius:999px;font-size:12px;backdrop-filter:blur(7px)}
+#controls{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:8px;padding:8px;background:#101319;border-top:1px solid #252b34}button{border:0;border-radius:12px;padding:12px 8px;font-weight:800;color:white;background:var(--panel2);box-shadow:inset 0 0 0 1px #ffffff12;touch-action:manipulation}button:active{transform:scale(.98)}.primary{background:linear-gradient(180deg,#ff4b42,#d92720)}.blue{background:linear-gradient(180deg,#1688ff,#0062c8)}.green{background:linear-gradient(180deg,#38cf61,#219b43)}.yellow{background:linear-gradient(180deg,#ffd238,#c79f00);color:#161616}
+#pilotControls{position:absolute;left:10px;right:10px;bottom:10px;display:none;grid-template-columns:1fr 1fr 1.1fr 1.1fr;gap:8px;pointer-events:auto}#pilotControls button{min-height:56px;font-size:16px;background:#0b0f14cc;border:1px solid #ffffff26;backdrop-filter:blur(5px)}#pilotControls .gas{background:#0f6d34d9}.brake{background:#7d1d18d9}
+#menu{position:absolute;inset:0;background:radial-gradient(circle at 50% 20%,#252a34,#0e1014 55%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}.menuBox{width:min(520px,100%);background:#12161d;border:1px solid #29313b;border-radius:20px;padding:18px;box-shadow:0 20px 80px #0008}h1{margin:0 0 6px;font-size:28px}.sub{color:var(--muted);margin-bottom:16px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid2 button{padding:14px}.teamRow{display:flex;gap:8px;align-items:center;margin:10px 0 16px}.dot{width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px #ff3b3066}
+#results{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#000a;z-index:6;padding:16px}#results .menuBox{max-height:88vh;overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px;border-bottom:1px solid #ffffff12;text-align:left}th{color:#aeb6c0}
+@media(max-width:560px){#hud{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:5px}.card{padding:5px}.card .v{font-size:12px}.card .k{font-size:8px}header{height:48px}#controls{grid-template-columns:repeat(4,1fr);gap:5px;padding:5px}button{font-size:11px;padding:11px 5px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="brand"><b>FÚRIA GP</b> · RACING MANAGER</div><div class="tiny" id="modeLabel">MODO MANAGER</div></header>
+<div id="hud">
+<div class="card"><div class="k">Posição</div><div class="v" id="pos">P20</div></div>
+<div class="card"><div class="k">Volta</div><div class="v" id="lap">1/6</div></div>
+<div class="card"><div class="k">Pneu</div><div class="v" id="tire">M 100%</div></div>
+<div class="card"><div class="k">Energia</div><div class="v" id="energy">100%</div></div>
+<div class="card"><div class="k">Velocidade</div><div class="v" id="speed">0 km/h</div></div>
+</div>
+<div id="gameWrap">
+<canvas id="game"></canvas>
+<div id="overlay"><div class="topToast" id="toast">Largada em 3...</div></div>
+<div id="pilotControls"><button id="left">◀ ESQ</button><button id="right">DIR ▶</button><button class="brake" id="brake">FREIO</button><button class="gas" id="gas">ACELERA</button></div>
+<div id="menu"><div class="menuBox"><h1>Fúria GP</h1><div class="sub">Corrida + estratégia. Troque entre chefe de equipe e piloto durante a prova.</div><div class="teamRow"><div class="dot"></div><b>Equipe: Fúria Racing</b></div><div class="grid2"><button class="primary" id="startBtn">CORRIDA RÁPIDA</button><button class="blue" id="careerBtn">MODO CARREIRA</button></div><p class="tiny" style="margin:14px 2px 0">Protótipo jogável • 20 carros • 6 voltas • pit stop • pneus • energia • controle manual.</p></div></div>
+<div id="results"><div class="menuBox"><h1>Resultado</h1><div class="sub" id="resultText"></div><div id="tableWrap"></div><div class="grid2" style="margin-top:12px"><button class="primary" id="again">CORRER DE NOVO</button><button id="backMenu">MENU</button></div></div></div>
+</div>
+<div id="controls"><button class="primary" id="switchMode">PILOTO</button><button class="yellow" id="attack">ATAQUE</button><button class="blue" id="pit">PIT STOP</button><button class="green" id="tireBtn">PNEU: M</button></div>
+</div>
+<script>
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+const ui={pos:document.getElementById('pos'),lap:document.getElementById('lap'),tire:document.getElementById('tire'),energy:document.getElementById('energy'),speed:document.getElementById('speed'),toast:document.getElementById('toast'),mode:document.getElementById('modeLabel')};
+let W=0,H=0,scale=1,playing=false,mode='manager',countdown=3,last=0,career=false;
+let keys={left:false,right:false,gas:false,brake:false},selectedTire='M',attackOn=false,pitRequested=false;
+const COLORS=['#ff3b30','#0a84ff','#ffd60a','#64d2ff','#bf5af2','#30d158','#ff9f0a','#ff375f','#5e5ce6','#00c7be','#ac8e68','#8e8e93','#34c759','#ff453a','#32ade6','#a2845e','#7d7aff','#66d4cf','#ffb340','#ffffff'];
+const tireBase={S:1.055,M:1.0,H:.965},tireWear={S:.032,M:.022,H:.014};
+let cars=[];
+function resize(){const r=c.getBoundingClientRect();W=Math.floor(r.width*devicePixelRatio);H=Math.floor(r.height*devicePixelRatio);c.width=W;c.height=H;scale=devicePixelRatio}
+addEventListener('resize',resize);resize();
+function reset(){cars=[];for(let i=0;i<20;i++){cars.push({name:i===0?'NICOLLAS':'CPU '+i,player:i===0,progress:-i*0.012,lane:(i%2?1:-1)*(0.18+Math.random()*.16),speed:0,tire:i===0?selectedTire:['S','M','H'][Math.floor(Math.random()*3)],wear:1,energy:1,pit:0,skill:i===0?1:0.92+Math.random()*.12,finished:false});}countdown=3;attackOn=false;pitRequested=false;mode='manager';document.getElementById('pilotControls').style.display='none';document.getElementById('switchMode').textContent='PILOTO';ui.mode.textContent='MODO MANAGER';document.getElementById('results').style.display='none'}
+function trackPoint(t){const a=t*Math.PI*2;return{x:W*.5+Math.cos(a)*W*.36,y:H*.5+Math.sin(a)*H*.36,ang:a}}
+function raceOrder(){return [...cars].sort((a,b)=>b.progress-a.progress)}function player(){return cars[0]}
+function update(dt){if(!playing||countdown>0)return;const p=player();for(const car of cars){if(car.finished)continue;let grip=tireBase[car.tire]*(0.72+0.28*car.wear),target=0.063*car.skill*grip;if(car.player){if(mode==='pilot'){let throttle=keys.gas?1:.65;if(keys.brake)throttle=.25;target*=throttle;if(keys.left)car.lane-=dt*.45;if(keys.right)car.lane+=dt*.45;car.lane=Math.max(-.42,Math.min(.42,car.lane))}else target*=attackOn?1.06:.99;if(attackOn&&car.energy>0){car.energy=Math.max(0,car.energy-dt*.055);target*=1.05}else car.energy=Math.min(1,car.energy+dt*.016);if(pitRequested&&((car.progress%1+1)%1)>.95){car.pit=2.1;pitRequested=false;ui.toast.textContent='PIT STOP!'}}else{if(Math.random()<dt*.02)car.lane=Math.max(-.38,Math.min(.38,car.lane+(Math.random()-.5)*.2));if(car.wear<.25&&((car.progress%1+1)%1)>.93)car.pit=1.8}if(car.pit>0){car.pit-=dt;target*=.18;if(car.pit<=0){car.wear=1;car.tire=car.player?selectedTire:['S','M','H'][Math.floor(Math.random()*3)]}}car.speed+=(target-car.speed)*Math.min(1,dt*2.8);car.progress+=car.speed*dt;car.wear=Math.max(0,car.wear-dt*tireWear[car.tire]);if(car.progress>=6){car.finished=true;car.speed=0}}if(p.finished){playing=false;showResults()}}
+function ellipsePath(){ctx.ellipse(W*.5,H*.5,W*.36,H*.36,0,0,Math.PI*2)}
+function drawTrack(){ctx.fillStyle='#185724';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#2a2d31';ctx.lineWidth=Math.max(65*scale,Math.min(W,H)*.16);ctx.lineCap='round';ctx.beginPath();ellipsePath();ctx.stroke();ctx.strokeStyle='#44484e';ctx.lineWidth=3*scale;ctx.beginPath();ellipsePath();ctx.stroke();ctx.setLineDash([14*scale,12*scale]);ctx.strokeStyle='#cfd2d6';ctx.lineWidth=2*scale;ctx.beginPath();ellipsePath();ctx.stroke();ctx.setLineDash([])}
+function drawCars(){const order=raceOrder();for(let z=order.length-1;z>=0;z--){const car=order[z],t=((car.progress%1)+1)%1,pt=trackPoint(t),laneOffset=car.lane*Math.min(W,H)*.12,x=pt.x+Math.cos(pt.ang)*laneOffset,y=pt.y+Math.sin(pt.ang)*laneOffset,rot=pt.ang+Math.PI/2;ctx.save();ctx.translate(x,y);ctx.rotate(rot);const L=car.player?24:19,R=car.player?8:6;ctx.fillStyle=car.player?'#ff3b30':COLORS[cars.indexOf(car)%COLORS.length];ctx.fillRect(-R*scale,-L*scale/2,R*2*scale,L*scale);ctx.fillStyle='#111';ctx.fillRect(-R*1.2*scale,-L*.38*scale,R*.55*scale,L*.22*scale);ctx.fillRect(R*.65*scale,-L*.38*scale,R*.55*scale,L*.22*scale);ctx.fillRect(-R*1.2*scale,L*.16*scale,R*.55*scale,L*.22*scale);ctx.fillRect(R*.65*scale,L*.16*scale,R*.55*scale,L*.22*scale);ctx.fillStyle='#fff';ctx.font=(8*scale)+'px system-ui';ctx.textAlign='center';ctx.fillText(car.player?'19':String(cars.indexOf(car)+1),0,3*scale);if(car.player){ctx.strokeStyle='#fff';ctx.lineWidth=1.5*scale;ctx.strokeRect(-R*scale,-L*scale/2,R*2*scale,L*scale)}ctx.restore()}}
+function draw(){ctx.clearRect(0,0,W,H);drawTrack();drawCars()}
+function updateUI(){const p=player(),idx=raceOrder().indexOf(p)+1;ui.pos.textContent='P'+idx;ui.lap.textContent=Math.min(6,Math.max(1,Math.floor(Math.max(0,p.progress))+1))+'/6';ui.tire.textContent=p.tire+' '+Math.round(p.wear*100)+'%';ui.energy.textContent=Math.round(p.energy*100)+'%';ui.speed.textContent=Math.round(p.speed/0.063*330)+' km/h'}
+function frame(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;if(playing){if(countdown>0){countdown-=dt;ui.toast.textContent=countdown>2?'Largada em 3...':countdown>1?'Largada em 2...':countdown>0?'Largada em 1...':'VAI!'}else if(countdown>-1){countdown=-1;setTimeout(()=>ui.toast.textContent='Boa corrida!',700)}update(dt);updateUI()}draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+function start(isCareer=false){career=isCareer;selectedTire='M';document.getElementById('tireBtn').textContent='PNEU: M';reset();document.getElementById('menu').style.display='none';playing=true}
+document.getElementById('startBtn').onclick=()=>start(false);document.getElementById('careerBtn').onclick=()=>start(true);document.getElementById('again').onclick=()=>start(career);document.getElementById('backMenu').onclick=()=>{playing=false;document.getElementById('results').style.display='none';document.getElementById('menu').style.display='flex'};
+document.getElementById('switchMode').onclick=()=>{mode=mode==='manager'?'pilot':'manager';document.getElementById('pilotControls').style.display=mode==='pilot'?'grid':'none';document.getElementById('switchMode').textContent=mode==='pilot'?'MANAGER':'PILOTO';ui.mode.textContent=mode==='pilot'?'MODO PILOTO':'MODO MANAGER';ui.toast.textContent=mode==='pilot'?'Você assumiu o carro!':'Estratégia automática ativa'};
+document.getElementById('attack').onclick=()=>{attackOn=!attackOn;document.getElementById('attack').textContent=attackOn?'POUPAR':'ATAQUE';document.getElementById('attack').className=attackOn?'green':'yellow'};
+document.getElementById('pit').onclick=()=>{pitRequested=true;ui.toast.textContent='Pit programado no fim da volta'};
+document.getElementById('tireBtn').onclick=()=>{selectedTire=selectedTire==='S'?'M':selectedTire==='M'?'H':'S';document.getElementById('tireBtn').textContent='PNEU: '+selectedTire;ui.toast.textContent='Próximo pneu: '+({S:'Macio',M:'Médio',H:'Duro'}[selectedTire])};
+function hold(id,key){const el=document.getElementById(id);['pointerdown','touchstart'].forEach(e=>el.addEventListener(e,ev=>{ev.preventDefault();keys[key]=true},{passive:false}));['pointerup','pointercancel','pointerleave','touchend'].forEach(e=>el.addEventListener(e,()=>keys[key]=false))}
+hold('left','left');hold('right','right');hold('gas','gas');hold('brake','brake');
+function showResults(){const order=raceOrder(),rank=order.indexOf(player())+1;document.getElementById('resultText').textContent=career?'Carreira: você terminou em P'+rank+'. Pontos e upgrades serão liberados na próxima versão.':'Você terminou em P'+rank+'.';let html='<table><tr><th>#</th><th>Piloto</th><th>Pneu</th></tr>';order.forEach((car,i)=>html+='<tr><td>'+(i+1)+'</td><td>'+(car.player?'NICOLLAS 19':car.name)+'</td><td>'+car.tire+'</td></tr>');html+='</table>';document.getElementById('tableWrap').innerHTML=html;document.getElementById('results').style.display='flex'}
+</script>
+</body>
+</html>
