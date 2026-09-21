@@ -1,1 +1,1 @@
-Trigger build Furia GP 2 - v2
+Trigger build Furia GP 2 direct install
