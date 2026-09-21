@@ -7,7 +7,7 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.nox.furiagp'
+        applicationId 'com.nox.furiagp2'
         minSdk 23
         targetSdk 35
         versionCode 2
