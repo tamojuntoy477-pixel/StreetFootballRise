@@ -1,1 +1,1 @@
-Trigger PR build for Furia GP APK - retry 3
+Trigger build Furia GP 2 - v2
