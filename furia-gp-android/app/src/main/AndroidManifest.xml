@@ -3,7 +3,8 @@
     <application
         android:allowBackup="true"
         android:hardwareAccelerated="true"
-        android:label="Fúria GP"
+        android:icon="@drawable/ic_launcher"
+        android:label="Fúria GP 2"
         android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen"
         android:usesCleartextTraffic="false">
         <activity
