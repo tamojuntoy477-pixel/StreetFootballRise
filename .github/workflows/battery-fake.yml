@@ -1,0 +1,52 @@
+name: Build Bateria Fake APK
+
+on:
+  push:
+    branches:
+      - battery-fake-app
+    paths:
+      - 'battery-fake-android/**'
+      - '.github/workflows/battery-fake.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android 35
+        shell: bash
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        working-directory: battery-fake-android
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: cp battery-fake-android/app/build/outputs/apk/debug/app-debug.apk Bateria-Fake-9999.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bateria-Fake-9999-APK
+          path: Bateria-Fake-9999.apk
+          if-no-files-found: error
