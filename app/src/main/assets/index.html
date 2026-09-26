@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Noxaria World Conflict 2D</title>
+<style>
+:root{--bg:#071220;--panel:#0d213b;--txt:#f3f7ff;--muted:#9db6d8;--cyan:#19e6ff}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#071220,#091a2f 55%,#071220);color:var(--txt)}
+.wrap{padding:12px;max-width:980px;margin:auto}
+h1{font-size:24px;margin:0;font-weight:900}.sub{font-size:12px;color:var(--cyan);margin:2px 0 10px}
+.panel{background:linear-gradient(180deg,#0d213b,#0a1730);border:1px solid #ffffff12;border-radius:17px;margin-bottom:10px;box-shadow:0 8px 26px #0005}
+.status{padding:11px 13px;font-size:13px}
+.map{padding:8px}canvas{display:block;width:100%;height:auto;border-radius:13px;background:linear-gradient(#0b2b4d,#0a1f38);touch-action:manipulation}
+.controls{padding:9px;display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+button{min-height:48px;border:0;border-radius:12px;background:linear-gradient(#19406f,#113255);color:#fff;font-weight:800}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:9px}
+.card{padding:10px;border-radius:12px;background:#ffffff08;border:1px solid #ffffff0d}
+.label{font-size:11px;color:var(--muted)}.big{font-size:17px;font-weight:900}.small{font-size:12px}
+@media(max-width:650px){.info{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>NOXARIA: WORLD CONFLICT 2D</h1>
+<div class="sub">195 países + Noxária • simulação 2D</div>
+
+<div class="panel status" id="status">Carregando...</div>
+<div class="panel map"><canvas id="game" width="1080" height="620"></canvas></div>
+
+<div class="panel controls">
+<button id="play">▶ JOGAR</button>
+<button id="speed">VELOCIDADE x1</button>
+<button id="reset">↻ REINICIAR</button>
+<button id="boost">★ BOOST NOXÁRIA</button>
+<button id="expand">✚ EXPANDIR NOXÁRIA</button>
+<button id="war">⚔ GUERRA RÁPIDA</button>
+</div>
+
+<div class="panel info">
+<div class="card"><div class="label">Selecionado</div><div class="big" id="sel">Noxária</div><div class="small" id="sel2">Menor país inicial</div></div>
+<div class="card"><div class="label">Líder</div><div class="big" id="lead">—</div><div class="small" id="lead2">—</div></div>
+</div>
+</div>
+
+<script>
+const cv=document.getElementById('game'),ctx=cv.getContext('2d');
+const statusEl=document.getElementById('status'),sel=document.getElementById('sel'),sel2=document.getElementById('sel2'),lead=document.getElementById('lead'),lead2=document.getElementById('lead2');
+const COLS=36,ROWS=18,NOX=195,speeds=[1,2,4];
+let speed=0,running=false,year=2026,selected=NOX,cells=[],factions=[],grid=new Map();
+
+const codes=("AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI CV KH CM CA CF TD CL CN CO KM CG CD CR CI HR CU CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MG MW MY MV ML MT MH MR MU MX FM MD MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG MK NO OM PK PW PS PA PG PY PE PH PL PT QA RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA SS ES LK SD SR SE CH SY TJ TZ TH TL TG TO TT TN TR TM TV UG UA AE GB US UY UZ VU VA VE VN YE ZM ZW").split(" ");
+
+function nameOf(c){try{return new Intl.DisplayNames(['pt-BR'],{type:'region'}).of(c)||c}catch(e){return c}}
+function color(i){return 'hsl('+((i*137.5)%360)+' 65% 58%)'}
+function key(c,r){return c+','+r}
+function ell(x,y,cx,cy,rx,ry){let a=(x-cx)/rx,b=(y-cy)/ry;return a*a+b*b<=1}
+function land(){
+ let o=[];
+ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+  let x=(c-17.5)/17.5,y=(r-8.5)/8.5;
+  let ok=ell(x,y,-.62,-.35,.33,.26)||ell(x,y,-.47,.15,.17,.18)||ell(x,y,-.40,.49,.15,.37)||ell(x,y,.20,-.36,.56,.26)||ell(x,y,.07,.10,.25,.35)||ell(x,y,.47,-.16,.25,.18)||ell(x,y,.65,.44,.18,.12)||ell(x,y,-.80,-.70,.10,.08);
+  if(ok&&x>0&&x<.18&&y>-.12&&y<.02)ok=false;
+  if(ok&&x>.44&&x<.60&&y>-.05&&y<.10)ok=false;
+  if(ok)o.push({c,r});
+ }
+ while(o.length>195)o.splice(Math.floor(o.length*.37),1);
+ while(o.length<195)o.push({c:(o.length*7)%COLS,r:(o.length*5)%ROWS});
+ return o;
+}
+function reset(){
+ running=false;year=2026;speed=0;selected=NOX;cells=[];factions=[];grid=new Map();
+ for(let i=0;i<195;i++)factions.push({name:nameOf(codes[i]),color:color(i),power:8+Math.floor(Math.random()*13)});
+ factions.push({name:'Noxária',color:'#19e6ff',power:12});
+ let l=land();
+ for(let i=0;i<195;i++){let x={c:l[i].c,r:l[i].r,owner:i,tiny:false};cells.push(x);grid.set(key(x.c,x.r),i)}
+ cells.push({c:15,r:12,owner:NOX,tiny:true});
+ update();draw();
+}
+function count(o){let n=0;for(let c of cells)if(c.owner===o)n++;return n}
+function alive(){let s=new Set();for(let c of cells)s.add(c.owner);return [...s]}
+function leader(){let b=0,n=-1;for(let i=0;i<196;i++){let q=count(i);if(q>n){n=q;b=i}}return b}
+function neigh(i){
+ let c=cells[i],out=[];
+ if(c.tiny||c.owner===NOX){
+  let b=-1,d=999;
+  for(let j=0;j<195;j++){let o=cells[j],dd=Math.hypot(o.c-15,o.r-12);if(dd<d){d=dd;b=j}}
+  if(b>=0)out.push(b);return out;
+ }
+ for(let z of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){let id=grid.get(key(c.c+z[0],c.r+z[1]));if(id!==undefined)out.push(id)}
+ if(Math.abs(c.c-15)<=1&&Math.abs(c.r-12)<=1)out.push(195);
+ return out;
+}
+function step(){
+ for(let t=0;t<28;t++){
+  let ai=Math.floor(Math.random()*cells.length),a=cells[ai],ns=neigh(ai);if(!ns.length)continue;
+  let bi=ns[Math.floor(Math.random()*ns.length)],b=cells[bi];if(a.owner===b.owner)continue;
+  let ap=factions[a.owner].power+count(a.owner)*2+Math.floor(Math.random()*22);
+  let bp=factions[b.owner].power+count(b.owner)*2+Math.floor(Math.random()*22);
+  if(ap>=bp){let old=b.owner;b.owner=a.owner;factions[a.owner].power=Math.min(180,factions[a.owner].power+2);factions[old].power=Math.max(1,factions[old].power-1);selected=a.owner;break}
+  else if(Math.random()<.17){let old=a.owner;a.owner=b.owner;factions[b.owner].power=Math.min(180,factions[b.owner].power+1);factions[old].power=Math.max(1,factions[old].power-1);selected=b.owner;break}
+ }
+ year++;
+}
+function boost(){if(count(NOX)===0)cells[195].owner=NOX;factions[NOX].power=Math.min(250,factions[NOX].power+30);selected=NOX;update();draw()}
+function expand(){let ns=neigh(195);let target=ns.length?ns[Math.floor(Math.random()*ns.length)]:Math.floor(Math.random()*195);cells[target].owner=NOX;factions[NOX].power+=8;selected=NOX;update();draw()}
+function update(){
+ let l=leader(),f=factions[selected]||factions[NOX];
+ statusEl.textContent='Ano '+year+' • '+alive().length+' países ativos • líder: '+factions[l].name+' • Noxária: '+count(NOX)+' território(s)';
+ sel.textContent=f.name;sel2.textContent=count(selected)+' território(s) • força '+f.power;
+ lead.textContent=factions[l].name;lead2.textContent=count(l)+' território(s) • força '+factions[l].power;
+ document.getElementById('play').textContent=running?'⏸ PAUSAR':'▶ JOGAR';
+ document.getElementById('speed').textContent='VELOCIDADE x'+speeds[speed];
+}
+function rr(x,y,w,h,r,fill){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='#0007';ctx.lineWidth=1;ctx.stroke()}
+function draw(){
+ let W=cv.width,H=cv.height,m=16,cw=(W-m*2)/COLS,ch=(H-m*2)/ROWS;
+ ctx.clearRect(0,0,W,H);
+ ctx.strokeStyle='#7ab4ff16';
+ for(let r=1;r<ROWS;r+=2){ctx.beginPath();ctx.moveTo(m,m+r*ch);ctx.lineTo(W-m,m+r*ch);ctx.stroke()}
+ for(let c of cells){
+  let x=m+c.c*cw,y=m+c.r*ch;
+  if(c.tiny){let cx=x+cw/2,cy=y+ch/2,s=Math.max(6,Math.min(cw,ch)*.34);ctx.fillStyle=factions[c.owner].color;ctx.beginPath();ctx.moveTo(cx,cy-s);ctx.lineTo(cx+s,cy);ctx.lineTo(cx,cy+s);ctx.lineTo(cx-s,cy);ctx.closePath();ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke()}
+  else rr(x+1,y+1,cw-2,ch-2,Math.min(cw,ch)*.23,factions[c.owner].color);
+ }
+ let n=cells[195],nx=m+n.c*cw+cw/2+8,ny=m+n.r*ch-4;ctx.fillStyle='#fff';ctx.font='bold 18px sans-serif';ctx.fillText('NOXÁRIA',nx,ny);
+}
+function selectAt(e){
+ let r=cv.getBoundingClientRect(),x=(e.clientX-r.left)*cv.width/r.width,y=(e.clientY-r.top)*cv.height/r.height;
+ let m=16,cw=(cv.width-m*2)/COLS,ch=(cv.height-m*2)/ROWS,b=-1,d=1e18;
+ for(let i=0;i<cells.length;i++){let c=cells[i],cx=m+c.c*cw+cw/2,cy=m+c.r*ch+ch/2,dd=(x-cx)**2+(y-cy)**2;if(dd<d){d=dd;b=i}}
+ if(b>=0){selected=cells[b].owner;update()}
+}
+document.getElementById('play').onclick=()=>{running=!running;update()};
+document.getElementById('speed').onclick=()=>{speed=(speed+1)%speeds.length;update()};
+document.getElementById('reset').onclick=reset;
+document.getElementById('boost').onclick=boost;
+document.getElementById('expand').onclick=expand;
+document.getElementById('war').onclick=()=>{for(let i=0;i<30;i++)step();update();draw()};
+cv.addEventListener('click',selectAt);
+function loop(){if(running){for(let i=0;i<speeds[speed];i++)step();update();draw()}requestAnimationFrame(loop)}
+reset();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
