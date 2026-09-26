@@ -1,13 +1,14 @@
-plugins { id 'com.android.application' }
-
+plugins {
+    id 'com.android.application'
+}
 android {
-    namespace 'com.noxtv.streetfootballrise'
-    compileSdk 35
+    namespace 'com.noxaria.worldconflict'
+    compileSdk 34
     defaultConfig {
-        applicationId 'com.noxtv.streetfootballrise'
+        applicationId 'com.noxaria.worldconflict'
         minSdk 23
-        targetSdk 35
+        targetSdk 34
         versionCode 2
-        versionName '1.1'
+        versionName '2.0'
     }
 }
