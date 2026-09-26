@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NOX GBA</title>
+<style>
+:root{--text:#f5f7ff;--muted:#a8afc2;--accent:#8d7cff}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:radial-gradient(circle at top,#23263a 0,#0d0f14 48%);font-family:system-ui,sans-serif;color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
+.shell{width:min(100%,780px);background:linear-gradient(180deg,#202430,#141720);border:1px solid #32384a;border-radius:34px;padding:18px;box-shadow:0 24px 80px #0008}
+.brand{display:flex;justify-content:space-between;gap:12px;margin:2px 4px 14px}.brand strong{font-size:22px;letter-spacing:2px}.brand span{font-size:12px;color:var(--muted)}
+.screen{background:#050608;border:10px solid #0a0b0e;border-radius:22px;aspect-ratio:3/2;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#game{width:100%;height:100%;display:none}.welcome{padding:28px;text-align:center}.welcome h1{font-size:28px;margin:0 0 8px}.welcome p{color:var(--muted);margin:0 auto 20px}
+.pick{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:14px;background:var(--accent);color:#fff;font-weight:800}
+#rom{display:none}.status{margin-top:12px;font-size:12px;color:var(--muted)}
+.controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:20px 8px 4px}
+.dpad{width:132px;height:132px;position:relative;margin:auto}.dpad div{position:absolute;background:#090b10;border:1px solid #303545}.dpad .v{width:44px;height:132px;left:44px;border-radius:10px}.dpad .h{width:132px;height:44px;top:44px;border-radius:10px}.dpad .dot{width:28px;height:28px;border-radius:50%;left:52px;top:52px;background:#161a23}
+.mid{text-align:center;color:var(--muted);font-size:10px}.pill{display:inline-block;width:48px;height:16px;border-radius:99px;background:#080a0f;border:1px solid #303545;transform:rotate(-12deg);margin:6px}
+.ab{height:132px;display:flex;align-items:center;justify-content:center;gap:18px;transform:rotate(-18deg)}.ab .btn{width:58px;height:58px;border-radius:50%;background:#3b1f58;border:1px solid #694195;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px}.ab .btn span{transform:rotate(18deg)}
+.note{text-align:center;font-size:11px;color:#8c93a7;margin-top:10px}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="brand"><strong>NOX GBA</strong><span>ADVANCE • MOBILE</span></div>
+<section class="screen">
+<div id="welcome" class="welcome">
+<h1>Seu GBA está pronto</h1>
+<p>Escolha um arquivo <b>.gba</b> do seu celular.</p>
+<label class="pick" for="rom">ABRIR JOGO .GBA</label>
+<input id="rom" type="file" accept=".gba,application/octet-stream">
+<div id="status" class="status">Nenhum jogo carregado</div>
+</div>
+<div id="game"></div>
+</section>
+<section class="controls" aria-hidden="true">
+<div class="dpad"><div class="v"></div><div class="h"></div><div class="dot"></div></div>
+<div class="mid"><div class="pill"></div><div class="pill"></div><b>SELECT START</b></div>
+<div class="ab"><div class="btn"><span>B</span></div><div class="btn"><span>A</span></div></div>
+</section>
+<div class="note">Os controles reais aparecem quando o emulador iniciar.</div>
+</main>
+<script>
+const romInput=document.getElementById('rom'),statusEl=document.getElementById('status');let objectUrl=null,started=false;
+romInput.addEventListener('change',event=>{
+ const file=event.target.files&&event.target.files[0]; if(!file)return;
+ if(!file.name.toLowerCase().endsWith('.gba')){statusEl.textContent='Escolha um arquivo .gba';return;}
+ if(started){location.reload();return;}
+ statusEl.textContent='Carregando '+file.name+'...'; objectUrl=URL.createObjectURL(file);
+ window.EJS_player='#game'; window.EJS_core='gba'; window.EJS_gameUrl=objectUrl;
+ window.EJS_gameName=file.name.replace(/\.gba$/i,''); window.EJS_pathtodata='https://cdn.emulatorjs.org/stable/data/';
+ window.EJS_startOnLoaded=true; window.EJS_language='pt-BR'; window.EJS_threads=false;
+ document.getElementById('welcome').style.display='none'; document.getElementById('game').style.display='block'; started=true;
+ const loader=document.createElement('script'); loader.src='https://cdn.emulatorjs.org/stable/data/loader.js';
+ loader.onerror=()=>{document.getElementById('welcome').style.display='block';document.getElementById('game').style.display='none';statusEl.textContent='Sem conexão com o núcleo do emulador.';started=false;};
+ document.body.appendChild(loader);
+});
+</script>
+</body>
+</html>
