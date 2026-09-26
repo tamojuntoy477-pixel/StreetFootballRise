@@ -10,6 +10,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import java.util.*;
+import java.text.Collator;
 
 public class MainActivity extends Activity {
     private final String[] CODES = {
